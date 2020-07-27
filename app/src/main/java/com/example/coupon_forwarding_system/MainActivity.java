@@ -34,6 +34,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 
@@ -49,6 +50,8 @@ public class MainActivity extends AppCompatActivity {
     public static byte[][] data_legacy;
     public static byte[][] data_extended;
 
+    public static byte[] id_byte = new byte[] {0x22, 0x6c, 0x74, 0x52};
+
     public static String card;
 
     static boolean version = false;  //true: 4.0 , false:5.0
@@ -57,18 +60,11 @@ public class MainActivity extends AppCompatActivity {
 
 
     static List<String> list_device = new ArrayList<>();
-    static List<String> list_device_detail = new ArrayList<>();
 
-
-    static ArrayList<ArrayList<Object>> matrix = new ArrayList<>();
-    static ArrayList<ArrayList<Object>> time_interval = new ArrayList<>();
-    static ArrayList<Integer> num_total = new ArrayList<>();
-    static ArrayList<Long> time_previous = new ArrayList<>();
-    static ArrayList<Long> mean_total = new ArrayList<>();
+    static List<Calendar> last_received_time = new ArrayList<>();
+    static List<String> regroup_data = new ArrayList<>();
 
     static ArrayList<ArrayList<Long>> num_list = new ArrayList<>();
-    static  ArrayList<ArrayList<Long>> num_time = new ArrayList<>();
-
     static  ArrayList<ArrayList<String>> data_list = new ArrayList<>();
 
     static Map<Integer, AdvertiseCallback> AdvertiseCallbacks_map;
@@ -86,7 +82,6 @@ public class MainActivity extends AppCompatActivity {
     static Button scan_list;
     static Button startAdvButton;
     static Button stopAdvButton;
-    static Button name_card;
     public static TextView peripheralTextView;
     static TextView sql_Text;
 
@@ -192,9 +187,7 @@ public class MainActivity extends AppCompatActivity {
         scan_list.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 final SQLiteDatabase db = DH.getReadableDatabase();
-//                for (int counter = 0 ; counter <card_list(db).length ; counter++) {
-//                    Log.e(TAG,counter + " list: " + Arrays.toString(card_list(db)[counter]));
-//                }
+
 
                 if (v.getId() == R.id.scan_list) {
                     new AlertDialog.Builder(MainActivity.this)
@@ -203,7 +196,6 @@ public class MainActivity extends AppCompatActivity {
                                 @Override
                                 public void onClick(DialogInterface dialog, final int which) {
                                     StringBuilder resultData = new StringBuilder("");
-//                                    resultData.append("Name: ").append(card_list(db)[0][which]).append("\n");
                                     resultData.append("Phone: ").append(card_list(db)[2][which]).append("\n");
                                     resultData.append("E-mail: ").append(card_list(db)[3][which]).append("\n");
                                     resultData.append("Company: ").append(card_list(db)[4][which]).append("\n");
@@ -272,88 +264,6 @@ public class MainActivity extends AppCompatActivity {
         AdvertiseCallbacks_map = new TreeMap<>();
         extendedAdvertiseCallbacks_map = new TreeMap<>();
 
-        /*---------------------------------------card----------------------------------------*/
-        name_card = findViewById(R.id.name_card);
-        final SharedPreferences SP = getApplicationContext().getSharedPreferences("NAME",0);
-        name_card.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                final AlertDialog.Builder mBuilder = new AlertDialog.Builder(MainActivity.this);
-
-                View mView = getLayoutInflater().inflate(R.layout.dialog,null);
-                final EditText name = mView.findViewById(R.id.etname);
-                final EditText phone = mView.findViewById(R.id.etphone);
-                final EditText email = mView.findViewById(R.id.etemail);
-                final EditText company = mView.findViewById(R.id.etcompany);
-                final EditText position = mView.findViewById(R.id.etposition);
-                final EditText other = mView.findViewById(R.id.etorther);
-                final Button btn_card = mView.findViewById(R.id.btncard);
-
-
-
-                name.setText(SP.getString("NAME",null));
-                phone.setText(SP.getString("PHONE",null));
-                email.setText(SP.getString("EMAIL",null));
-                company.setText(SP.getString("COMPANY",null));
-                position.setText(SP.getString("POSITION",null));
-                other.setText(SP.getString("OTHER",null));
-
-                name.setEnabled(true);
-                phone.setEnabled(true);
-                email.setEnabled(true);
-                company.setEnabled(true);
-                position.setEnabled(true);
-                other.setEnabled(true);
-                btn_card.setEnabled(true);
-
-                mBuilder.setView(mView);
-                final AlertDialog dialog = mBuilder.create();
-
-                btn_card.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        if(!name.getText().toString().isEmpty()){
-                            if(name.getText().toString().equals(SP.getString("NAME",null)) &&
-                                    phone.getText().toString().equals(SP.getString("PHONE",null)) &&
-                                    email.getText().toString().equals(SP.getString("EMAIL",null)) &&
-                                    company.getText().toString().equals(SP.getString("COMPANY",null)) &&
-                                    position.getText().toString().equals(SP.getString("POSITION",null)) &&
-                                    other.getText().toString().equals(SP.getString("OTHER",null)) ){
-                                Toast.makeText(MainActivity.this,"Setting has no change",Toast.LENGTH_SHORT).show();
-                            }else {
-                                Toast.makeText(MainActivity.this,"Setting Business Card Successfully",Toast.LENGTH_SHORT).show();
-
-                                SharedPrefesSAVE(1,name.getText().toString());
-                                SharedPrefesSAVE(2,phone.getText().toString());
-                                SharedPrefesSAVE(3,email.getText().toString());
-                                SharedPrefesSAVE(4,company.getText().toString());
-                                SharedPrefesSAVE(5,position.getText().toString());
-                                SharedPrefesSAVE(6,other.getText().toString());
-
-                                card = name.getText().toString() + ":" + phone.getText().toString() + ":" + email.getText().toString() + ":"
-                                        + company.getText().toString() + ":" + position.getText().toString() + ":" + other.getText().toString()+ ":";
-
-
-                                SharedPrefesSAVE(7,card);
-                                Log.e(TAG,"card: "+card.length()+card);
-                            }
-                            dialog.dismiss();
-
-                        }else {
-                            Toast.makeText(MainActivity.this,"Please fill the name field",Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
-
-                dialog.show();
-            }
-        });
-
-        card = SP.getString("CARD",null);
-
-        if(card != null){
-            Log.e(TAG,"card: "+card.length()+card);
-        }
     }
 
     private static String[][] card_list(SQLiteDatabase db){

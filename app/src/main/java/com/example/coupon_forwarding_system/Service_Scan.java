@@ -13,30 +13,21 @@ import android.view.View;
 import androidx.annotation.RequiresApi;
 
 import java.util.ArrayList;
-
-import static com.example.coupon_forwarding_system.Function.byte2HexStr;
 import static com.example.coupon_forwarding_system.MainActivity.TAG;
 import static com.example.coupon_forwarding_system.MainActivity.data_list;
+import static com.example.coupon_forwarding_system.MainActivity.last_received_time;
 import static com.example.coupon_forwarding_system.MainActivity.list_device;
-import static com.example.coupon_forwarding_system.MainActivity.list_device_detail;
 import static com.example.coupon_forwarding_system.MainActivity.mBluetoothLeScanner;
-import static com.example.coupon_forwarding_system.MainActivity.matrix;
-import static com.example.coupon_forwarding_system.MainActivity.mean_total;
 import static com.example.coupon_forwarding_system.MainActivity.num_list;
-import static com.example.coupon_forwarding_system.MainActivity.num_time;
-import static com.example.coupon_forwarding_system.MainActivity.num_total;
 import static com.example.coupon_forwarding_system.MainActivity.peripheralTextView;
+import static com.example.coupon_forwarding_system.MainActivity.regroup_data;
 import static com.example.coupon_forwarding_system.MainActivity.startScanningButton;
 import static com.example.coupon_forwarding_system.MainActivity.stopScanningButton;
-import static com.example.coupon_forwarding_system.MainActivity.time_interval;
-import static com.example.coupon_forwarding_system.MainActivity.time_previous;
+
+
 import static com.example.coupon_forwarding_system.Service_Adv.pdu_len;
 import static com.example.coupon_forwarding_system.Service_scan_function.leScanCallback;
-import static com.example.coupon_forwarding_system.Service_scan_function.received_time;
-import static com.example.coupon_forwarding_system.Service_scan_function.received_time_Calendar;
-import static com.example.coupon_forwarding_system.Service_scan_function.rssi_level_1;
-import static com.example.coupon_forwarding_system.Service_scan_function.rssi_level_2;
-import static com.example.coupon_forwarding_system.Service_scan_function.rssi_level_3;
+
 
 
 public class Service_Scan extends Service {
@@ -67,45 +58,14 @@ public class Service_Scan extends Service {
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     public void startScanning() {
-        received_time.clear();
-        Service_scan_function.received_time_interval.clear();
-        received_time_Calendar.clear();
-
         Log.e(TAG,"start scanning");
 
 
         list_device.clear();
-        list_device_detail.clear();
-
-        num_total.clear();
-        time_previous.clear();
-        mean_total.clear();
-        matrix.clear();
-        time_interval.clear();
-
-        rssi_level_1.clear();
-        rssi_level_2.clear();
-        rssi_level_3.clear();
-
         num_list.clear();
-        num_time.clear();
         data_list.clear();
-
-        long zero=0;
-        for (int j=0;j<100;j++){  //100 : mac address數量上限
-            num_total.add(1);
-            time_previous.add(zero);
-            mean_total.add(zero);
-        }
-
-        //add six row
-        matrix.add(new ArrayList<>());
-        matrix.add(new ArrayList<>());
-        matrix.add(new ArrayList<>());
-        matrix.add(new ArrayList<>());
-        matrix.add(new ArrayList<>());
-        matrix.add(new ArrayList<>());
-        matrix.add(new ArrayList<>());
+        last_received_time.clear();
+        regroup_data.clear();
 
 
         peripheralTextView.setText(null);
@@ -124,7 +84,7 @@ public class Service_Scan extends Service {
         ScanFilter Mau_filter_extended = new ScanFilter.Builder().setManufacturerData(0xffff,data_all,data_all).build();
         ScanFilter Mau_filter_legacy = new ScanFilter.Builder().setManufacturerData(0xffff,data_mask,data_mask).build();
 
-        Log.e(TAG,"data_mask: "+byte2HexStr(data_mask));
+//        Log.e(TAG,"data_mask: "+byte2HexStr(data_mask));
 
         ArrayList<ScanFilter> filters = new ArrayList<>();
 //        filters.add(Mau_filter_extended);
@@ -132,7 +92,7 @@ public class Service_Scan extends Service {
 
 
         ScanSettings settings = new ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
+                .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
                 .setLegacy(false)
 //                .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)  //Fails to start power optimized scan as this feature is not supported
 //                .setMatchMode(ScanSettings.)

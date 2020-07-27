@@ -10,6 +10,8 @@ import android.bluetooth.le.AdvertisingSetCallback;
 import android.bluetooth.le.AdvertisingSetParameters;
 import android.bluetooth.le.PeriodicAdvertisingParameters;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
@@ -19,14 +21,17 @@ import androidx.annotation.RequiresApi;
 
 import java.util.Arrays;
 
+import static com.example.coupon_forwarding_system.DBHelper.TB1;
 import static com.example.coupon_forwarding_system.Function.intToByte;
 import static com.example.coupon_forwarding_system.MainActivity.AdvertiseCallbacks_map;
+import static com.example.coupon_forwarding_system.MainActivity.DH;
 import static com.example.coupon_forwarding_system.MainActivity.TAG;
 import static com.example.coupon_forwarding_system.MainActivity.card;
 import static com.example.coupon_forwarding_system.MainActivity.data_extended;
 import static com.example.coupon_forwarding_system.MainActivity.data_legacy;
 import static com.example.coupon_forwarding_system.MainActivity.extendedAdvertiseCallbacks_map;
 
+import static com.example.coupon_forwarding_system.MainActivity.id_byte;
 import static com.example.coupon_forwarding_system.MainActivity.mAdvertiseCallback;
 import static com.example.coupon_forwarding_system.MainActivity.mBluetoothLeAdvertiser;
 import static com.example.coupon_forwarding_system.MainActivity.startAdvButton;
@@ -42,6 +47,8 @@ public class Service_Adv extends Service {
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     public Service_Adv() {
+
+        //todo forward_num+1
 
         startAdvertising();
         stopAdvButton.setOnClickListener(new View.OnClickListener() {
@@ -178,6 +185,9 @@ public class Service_Adv extends Service {
     }
 
     public static byte[][] Adv_data_seg(boolean v){
+        SQLiteDatabase db = DH.getReadableDatabase();
+        String data_ = get_data();
+        String ID = get_data();
         if(v){
             pdu_len=21;  //+3: without name
             if(card.length()%pdu_len!=0){
@@ -368,11 +378,31 @@ public class Service_Adv extends Service {
         return dataBuilder.build();
     }
 
-    //TODO data要改
     static AdvertiseData buildAdvertiseData_periodicData() {
         AdvertiseData.Builder dataBuilder = new AdvertiseData.Builder();
         byte[] data = {0x00,0x11,0xf,0x1a,0x00,0x11,0xf,0x1a,0x00,0x11,0xf,0x1a,0x00,0x11,0xf,0x1a,0x00,0x11,0xf,0x1a,0x00,0x11,0xf,0x1a,0x00,0x11,0xf,0x1a,0x00,0x11,0xf,0x1a,0x00,0x11,0xf,0x1a,0x00,0x11,0xf,0x1a};
         dataBuilder.addManufacturerData(0xffff,data);
         return dataBuilder.build();
+    }
+
+
+    private static void show(SQLiteDatabase db){
+        Cursor cursor = db.query(TB1,new String[]{"_id","ID","DATA"},
+                null,null,null,null,null);
+
+        StringBuilder resultData = new StringBuilder("RESULT: \n");
+        while(cursor.moveToNext()){
+            int _id = cursor.getInt(0);
+            String ID = cursor.getString(1);
+            String data = cursor.getString(2);
+
+            resultData.append(_id);
+            resultData.append(" ID: ").append(ID);
+            resultData.append(" data: ").append(data).append("\n");
+        }
+
+        Log.e(TAG,"resultData: " + resultData );
+
+        cursor.close();
     }
 }

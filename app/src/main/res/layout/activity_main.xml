@@ -65,13 +65,5 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/StartAdvButton" />
 
-    <Button
-        android:id="@+id/name_card"
-        android:layout_width="160dp"
-        android:layout_height="45dp"
-        android:layout_alignParentRight="true"
-        android:text="Name card"
-        app:layout_constraintStart_toStartOf="parent" />
-
 
 </RelativeLayout>
