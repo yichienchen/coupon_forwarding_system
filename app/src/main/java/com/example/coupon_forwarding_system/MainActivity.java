@@ -6,12 +6,15 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.job.JobInfo;
+import android.app.job.JobScheduler;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertisingSetCallback;
 import android.bluetooth.le.BluetoothLeAdvertiser;
 import android.bluetooth.le.BluetoothLeScanner;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -41,6 +44,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import static com.example.coupon_forwarding_system.DBHelper.TB1;
+import static com.example.coupon_forwarding_system.Service_Adv.get_id_num;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -50,11 +54,9 @@ public class MainActivity extends AppCompatActivity {
     public static byte[][] data_legacy;
     public static byte[][] data_extended;
 
-    public static byte[] id_byte = new byte[] {0x22, 0x6c, 0x74, 0x52};
+//    public static byte[] id_byte = new byte[] {0x22, 0x6c, 0x74, 0x52};
 
-    public static String card;
-
-    static boolean version = false;  //true: 4.0 , false:5.0
+    static boolean version = true;  //true: 4.0 , false:5.0
 
 //    static byte[] id_byte = new byte[4];
 
@@ -91,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
     static NotificationChannel mChannel;
     Intent intentMainActivity;
     static PendingIntent pendingIntent;
-    Notification notification;
+    static Notification notification;
     static Intent received_id;
 
     Intent adv_service;
@@ -107,13 +109,15 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         DH = new DBHelper(this,"COUPON_DB",null,1);
-        card = "";
 
         initialize();
         permission();
         element();
+        mjobScheduler();
 
+        Notify();
     }
+
 
     @Override
     public void onDestroy() {
@@ -153,7 +157,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        version = !mBluetoothAdapter.isLeExtendedAdvertisingSupported();
+
     }
 
     public void permission() {
@@ -235,17 +239,20 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-        sql_Text = findViewById(R.id.sql_Text);
 
         /*--------------------------------------advertise----------------------------------------*/
+        final SQLiteDatabase db = DH.getReadableDatabase();
         startAdvButton = findViewById(R.id.StartAdvButton);
         startAdvButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                if(card != null){
+                if(get_id_num(db)!=0){
                     startService(adv_service);
-                }else {
-                    Toast.makeText(MainActivity.this,"Please enter your business card!",Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(MainActivity.this,"There is no coupons!",Toast.LENGTH_SHORT).show();
                 }
+
+
+
             }
         });
         stopAdvButton = findViewById(R.id.StopAdvButton);
@@ -302,34 +309,39 @@ public class MainActivity extends AppCompatActivity {
         db.delete(TB1,"_id=?",new String[]{_id});
     }
 
-    public void SharedPrefesSAVE(int type,String value){
-        SharedPreferences prefs = getApplicationContext().getSharedPreferences("NAME",0);
-        SharedPreferences.Editor prefEDIT = prefs.edit();
-        switch (type){
-            case 1 :
-                prefEDIT.putString("NAME",value);
-                break;
-            case 2 :
-                prefEDIT.putString("PHONE",value);
-                break;
-            case 3 :
-                prefEDIT.putString("EMAIL",value);
-                break;
-            case 4 :
-                prefEDIT.putString("COMPANY",value);
-                break;
-            case 5 :
-                prefEDIT.putString("POSITION",value);
-                break;
-            case 6 :
-                prefEDIT.putString("OTHER",value);
-                break;
-            case 7 :
-                prefEDIT.putString("CARD",value);
-                break;
-        }
+    public void mjobScheduler(){
+        Log.e(TAG,"mjobScheduler");
+        JobScheduler scheduler = (JobScheduler)getSystemService(Context.JOB_SCHEDULER_SERVICE);
+        ComponentName componentName = new ComponentName(this, JOBservice_event_chack.class);
 
-        prefEDIT.apply();
+        JobInfo job = new JobInfo.Builder(1, componentName)
+                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                .setPersisted(true) // 重開機後是否執行
+                .setPeriodic(1000*60*15)
+                .build();
+
+//調用schedule
+        assert scheduler != null;
+        scheduler.schedule(job);
+
+    }
+
+    private void Notify() {
+        Intent intent1 = new Intent(this,MainActivity.class);
+        PendingIntent pendingIntent1 = PendingIntent.getActivity(this,0,intent1,PendingIntent.FLAG_UPDATE_CURRENT);
+        notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mChannel = new NotificationChannel("Coupon" , "優惠卷" , NotificationManager.IMPORTANCE_HIGH) ;
+        notification = new Notification.Builder(this,"Coupon")
+                .setContentTitle("COUPON")
+//                .setStyle(new NotificationCompat.BigTextStyle().bigText(text))
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentText("open")
+                .setWhen(System.currentTimeMillis())
+                .setShowWhen(true)
+                .setContentIntent(pendingIntent1)
+                .build();
+//        mChannel.setImportance(NotificationManager.IMPORTANCE_HIGH);
+        notificationManager.createNotificationChannel(mChannel);
     }
 
 }
