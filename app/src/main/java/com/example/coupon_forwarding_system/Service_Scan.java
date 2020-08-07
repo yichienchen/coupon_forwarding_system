@@ -181,6 +181,12 @@ public class Service_Scan extends Service {
 
 //            Log.e(TAG,"order: "+ order + " ; " + "total: " + total + " ; " + "id: " + id );
 
+//            if(order==1){
+//                received_data =
+//            }else {
+//                received_data = received_data.subSequence(12,received_data.length()).toString();
+//            }
+
             received_data = received_data.subSequence(12,received_data.length()).toString();
 //            Log.e(TAG,"received_data: "+ received_data);
 
@@ -240,11 +246,11 @@ public class Service_Scan extends Service {
                 data_list.get(index).add("finish");
                 for (int i = 0; i < total; i++) {
                     regroup = regroup + data_list.get(index).get(i);
-                    Log.e(TAG,"regroup: "+hexToAscii(regroup));
-                    regroup_data.set(index,hexToAscii(regroup));
+                    Log.e(TAG,"regroup: "+ regroup );
+                    regroup_data.set(index, regroup );
                 }
 //                Log.e(TAG, "regroup:" + hexToAscii(regroup));
-                Log.e(TAG, "regroup_data:" + regroup_data);
+//                Log.e(TAG, "regroup_data:" + regroup_data);
 
             }
 

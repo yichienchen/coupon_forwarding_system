@@ -17,8 +17,8 @@ import static com.example.coupon_forwarding_system.Service_scan_function.add_dat
 import static com.example.coupon_forwarding_system.Service_scan_function.compare_database;
 import static com.example.coupon_forwarding_system.Service_scan_function.time_difference_;
 
-public class JOBservice_event_chack extends JobService {
-    public JOBservice_event_chack() {
+public class JOBservice_event_check extends JobService {
+    public JOBservice_event_check() {
         Log.e(TAG,"JOBservice_event_check");
     }
 
@@ -29,7 +29,7 @@ public class JOBservice_event_chack extends JobService {
         for(int i=0;i<list_device.size();i++){
             if(!regroup_data.contains("0")) {
                 Log.e(TAG, i + " time_difference: " + time_difference_(last_received_time.get(i), c));
-                if (time_difference_(last_received_time.get(i), c) > 10000 && !compare_database(list_device.get(i) + regroup_data.get(i))) {
+                if (time_difference_(last_received_time.get(i), c) > 10*1000 && !compare_database(list_device.get(i) + regroup_data.get(i))) {
                     add_database(list_device.get(i), regroup_data.get(i));
 //                        list_device.remove(i);
 //                        last_received_time.remove(i);

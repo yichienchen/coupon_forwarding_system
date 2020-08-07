@@ -18,7 +18,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -28,7 +27,7 @@ import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -43,8 +42,11 @@ import java.util.Map;
 
 import java.util.TreeMap;
 
+import static android.Manifest.permission.ACCESS_BACKGROUND_LOCATION;
 import static com.example.coupon_forwarding_system.DBHelper.TB1;
+import static com.example.coupon_forwarding_system.Function.hexToAscii;
 import static com.example.coupon_forwarding_system.Service_Adv.get_id_num;
+import static com.example.coupon_forwarding_system.Service_Adv.hexToBytes;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -79,11 +81,11 @@ public class MainActivity extends AppCompatActivity {
     static AdvertiseCallback mAdvertiseCallback;
     static BluetoothLeAdvertiser mBluetoothLeAdvertiser;
 
-    static Button startScanningButton;
-    static Button stopScanningButton;
-    static Button scan_list;
-    static Button startAdvButton;
-    static Button stopAdvButton;
+    static ImageButton startScanningButton;
+    static ImageButton stopScanningButton;
+    static ImageButton scan_list;
+    static ImageButton startAdvButton;
+    static ImageButton stopAdvButton;
     public static TextView peripheralTextView;
     static TextView sql_Text;
 
@@ -121,14 +123,13 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onDestroy() {
-        //TODO 回前頁會呼叫onDestroy
-//        notificationManager.notify(1000, notification);
         stopService(adv_service);
         stopService(scan_service);
         Log.e(TAG, "onDestroy() called");
         super.onDestroy();
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     @Override
     public void onResume() {
         super.onResume();
@@ -160,16 +161,20 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     public void permission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
         }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.e(TAG, "!!!!!!!");
+            requestPermissions(new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, 10);
+        }
+
         if (!mBluetoothAdapter.isEnabled()) {
             Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableIntent, 1);
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.READ_PHONE_STATE}, 1);
         }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.VIBRATE) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.VIBRATE}, 1);
@@ -195,20 +200,17 @@ public class MainActivity extends AppCompatActivity {
 
                 if (v.getId() == R.id.scan_list) {
                     new AlertDialog.Builder(MainActivity.this)
-                            .setTitle("Business Card List")
-                            .setItems(card_list(db)[1], new DialogInterface.OnClickListener() {
+                            .setTitle("Coupon List")
+                            .setItems(card_list(db)[3], new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, final int which) {
                                     StringBuilder resultData = new StringBuilder("");
-                                    resultData.append("Phone: ").append(card_list(db)[2][which]).append("\n");
-                                    resultData.append("E-mail: ").append(card_list(db)[3][which]).append("\n");
-                                    resultData.append("Company: ").append(card_list(db)[4][which]).append("\n");
-                                    resultData.append("Position: ").append(card_list(db)[5][which]).append("\n");
-                                    resultData.append("Other: ").append(card_list(db)[6][which]);
+                                    resultData.append("date: ").append(card_list(db)[2][which]).append("\n");
+                                    resultData.append("contents: ").append(card_list(db)[4][which]).append("\n");
                                     Toast.makeText(getApplicationContext(), resultData, Toast.LENGTH_SHORT).show();
 
                                     new AlertDialog.Builder(MainActivity.this)
-                                            .setTitle(card_list(db)[1][which])
+                                            .setTitle(card_list(db)[3][which])
                                             .setMessage(resultData)
                                             .setPositiveButton("close", new DialogInterface.OnClickListener() {
                                                 @Override
@@ -219,8 +221,7 @@ public class MainActivity extends AppCompatActivity {
                                             .setNegativeButton("delete", new DialogInterface.OnClickListener() {
                                                 @Override
                                                 public void onClick(DialogInterface dialog, int w) {
-                                                    //todo 刪掉
-//                                                    Log.e(TAG,"刪掉");
+                                                    Log.e(TAG,"刪掉");
                                                     delete(card_list(db)[0][which]);
                                                 }
                                             })
@@ -274,29 +275,37 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private static String[][] card_list(SQLiteDatabase db){
-        Cursor cursor = db.query(TB1,new String[]{"_id","NAME","PHONE","EMAIL","COMPANY","POSITION","OTHER"},
+        Cursor cursor = db.query(TB1,new String[]{"_id","ID","DATA"},
                 null,null,null,null,null);
 
-        String[][] list = new String[7][cursor.getCount()];
+        String[][] list = new String[5][cursor.getCount()];
 
 
         while(cursor.moveToNext()){
 
             String _id = cursor.getString(0);
-            String n = cursor.getString(1);
-            String p = cursor.getString(2);
-            String e = cursor.getString(3);
-            String c = cursor.getString(4);
-            String po = cursor.getString(5);
-            String o = cursor.getString(6);
+            String ID = cursor.getString(1);
+            String DATA = cursor.getString(2);
+
+            byte[] bytes = hexToBytes(DATA.substring(2,10));
+
+            String date,title,data_;
+
+            date = (bytes[0] * 256 + (bytes[1] & 0xff)) +"."+ String.valueOf(bytes[2]) +"."+ String.valueOf(bytes[3]);
+            Log.e(TAG,"DATA: "+ date);
+            String[] parts = hexToAscii(DATA.substring(10)).split(":");
+            title = parts[0];
+            data_ = parts[1];
+
+//            Log.e(TAG,"date: "+ date);
+//            Log.e(TAG,"title: "+ title);
+//            Log.e(TAG,"data_: "+ data_);
 
             list[0][cursor.getPosition()] = _id;
-            list[1][cursor.getPosition()] = n;
-            list[2][cursor.getPosition()] = p;
-            list[3][cursor.getPosition()] = e;
-            list[4][cursor.getPosition()] = c;
-            list[5][cursor.getPosition()] = po;
-            list[6][cursor.getPosition()] = o;
+            list[1][cursor.getPosition()] = ID;
+            list[2][cursor.getPosition()] = date;
+            list[3][cursor.getPosition()] = title;
+            list[4][cursor.getPosition()] = data_;
 
         }
         cursor.close();
@@ -312,7 +321,9 @@ public class MainActivity extends AppCompatActivity {
     public void mjobScheduler(){
         Log.e(TAG,"mjobScheduler");
         JobScheduler scheduler = (JobScheduler)getSystemService(Context.JOB_SCHEDULER_SERVICE);
-        ComponentName componentName = new ComponentName(this, JOBservice_event_chack.class);
+
+        ComponentName componentName = new ComponentName(this, JOBservice_event_check.class);
+        ComponentName componentName1 = new ComponentName(this, Jobservice_data_check.class);
 
         JobInfo job = new JobInfo.Builder(1, componentName)
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
@@ -320,9 +331,16 @@ public class MainActivity extends AppCompatActivity {
                 .setPeriodic(1000*60*15)
                 .build();
 
+        JobInfo job1 = new JobInfo.Builder(2, componentName1)
+                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                .setPersisted(true) // 重開機後是否執行
+                .setPeriodic(1000*60*60*12)
+                .build();
+
 //調用schedule
         assert scheduler != null;
         scheduler.schedule(job);
+        scheduler.schedule(job1);
 
     }
 

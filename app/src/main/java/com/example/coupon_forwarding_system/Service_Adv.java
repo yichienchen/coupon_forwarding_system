@@ -32,6 +32,7 @@ import java.util.Date;
 
 import static com.example.coupon_forwarding_system.DBHelper.TB1;
 import static com.example.coupon_forwarding_system.Function.byte2HexStr;
+import static com.example.coupon_forwarding_system.Function.hexToAscii;
 import static com.example.coupon_forwarding_system.Function.intToByte;
 import static com.example.coupon_forwarding_system.MainActivity.AdvertiseCallbacks_map;
 import static com.example.coupon_forwarding_system.MainActivity.DH;
@@ -111,7 +112,7 @@ public class Service_Adv extends Service {
         SQLiteDatabase db = DH.getReadableDatabase();
         Log.e(TAG, "Service: Starting Advertising");
         id_num = get_id_num(db);
-        Log.e(TAG,"id_num: "+ id_num);
+//        Log.e(TAG,"id_num: "+ id_num);
         get_date(db);
         id_num = get_id_num(db);
         Log.e(TAG,"id_num: "+ id_num);
@@ -127,7 +128,7 @@ public class Service_Adv extends Service {
 
 
                 if(count<id_num){
-                    data_legacy = Adv_data_seg(version,count);
+                    data_legacy = Adv_data_seg(count);
                     for (int y=0;y<data_legacy.length;y++){
                         startBroadcast(y,true);
                     }
@@ -225,23 +226,28 @@ public class Service_Adv extends Service {
                 extendedAdvertiseCallbacks_map.remove(order);
                 Log.e(TAG,"ADV stop , "  + count +"("+order+")");
 
-//                Log.e(TAG,"count:"+count);
                 if(order == packet_num-1 && count == id_num-1){
-                    count=0;
+                    count=-1;
                 }
-//                Log.e(TAG,"count:"+count);
 
                 SQLiteDatabase db = DH.getReadableDatabase();
                 if(count!=id_num-1){
-                    while((get_data(count+1,db)==null)){
-                        count=count+1;
+                    if(count==-1){
+                        while((get_data(count+1,db)==null)){
+                            count=count+1;
+                        }
+                    }else {
+                        while((get_data(count,db)==null)){
+                            count=count+1;
+                        }
                     }
+
                 }
 
                 if (order == packet_num-1 && count < id_num-1){
                     count=count+1;
                     if(count<id_num){
-                        data_legacy = Adv_data_seg(version,count);
+                        data_legacy = Adv_data_seg(count);
                     }
                     for (int q=0;q<packet_num;q++) {  //x
                         if (count < id_num) {
@@ -275,25 +281,16 @@ public class Service_Adv extends Service {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
-    public static byte[][] Adv_data_seg(boolean v, int data_num){
+    public static byte[][] Adv_data_seg(int data_num){
         SQLiteDatabase db = DH.getReadableDatabase();
         String db_data = get_data(data_num,db);
         byte[] id_byte = get_id(data_num,db);
 
-        if(v){
-            pdu_len=48;
-            if(db_data.length()%pdu_len!=0){
-                packet_num = db_data.length()/pdu_len+1;
-            }else {
-                packet_num = db_data.length()/pdu_len;
-            }
+        pdu_len=48+5;
+        if(db_data.length()%pdu_len!=0){
+            packet_num = db_data.length()/pdu_len+1;
         }else {
-            pdu_len=245;
-            if(db_data.length()%pdu_len!=0){
-                packet_num = db_data.length()/pdu_len+1;
-            }else {
-                packet_num = db_data.length()/pdu_len;
-            }
+            packet_num = db_data.length()/pdu_len;
         }
 
         StringBuilder data = new StringBuilder(db_data);
@@ -505,37 +502,51 @@ public class Service_Adv extends Service {
     private static String get_data(int data_num,SQLiteDatabase db) {
         Cursor cursor = db.query(TB1,new String[]{"DATA"},
                 null,null,null,null,null);
-        String s;
+        String s,s1,s2;
+        int forward;
         String new_s = "";
         cursor.moveToPosition(data_num);
         s = cursor.getString(0);
 
+        s1 = s.substring(0,10);
+        s2 = hexToAscii(s.substring(10));
+//        Log.e(TAG,"s1: " + s1);
+//        Log.e(TAG,"s2: " + s2);
 
-        if(Integer.parseInt(s.substring(0, 1))==8){
+        forward = Integer.parseInt(s1.substring(0,2));
+
+//        Log.e(TAG,"forward: " + forward);
+
+        if(forward>9){
             new_s = null;
         }else {
-            new_s = (Integer.parseInt(s.substring(0, 1)) + 1) + s.substring(1);
+            new_s = s2;
         }
 
-//        Log.e(TAG,"new_s: " + new_s);
+//        Log.e(TAG,"new_s: " + s2);
         cursor.close();
         return new_s;
     }
 
     private static byte[] get_id(int data_num,SQLiteDatabase db) {
-        @SuppressLint("Recycle") Cursor cursor = db.query(TB1,new String[]{"ID"},
+        @SuppressLint("Recycle") Cursor cursor = db.query(TB1,new String[]{"ID","DATA"},
                 null,null,null,null,null);
         cursor.moveToPosition(data_num);
-        String s = cursor.getString(0);
+        String id = cursor.getString(0);
+        String data = cursor.getString(1);
 
-        int len = s.length();
-        byte[] re = new byte[len / 2];
-        for (int i = 0; i < len; i += 2) {
-            re[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-                    + Character.digit(s.charAt(i+1), 16));
-        }
+        String s1 = data.substring(0,10);
+        int forward = Integer.parseInt(s1.substring(0,2)) + 1;
+        byte[] date = hexToBytes(s1.substring(2));
+        date = byteMerger( bigIntToByteArray(forward),date);
 
-        Log.e(TAG,"get_id: "+ byte2HexStr(re));
+        byte[] re;
+        byte[] id_ = hexToBytes(id);
+//        Log.e(TAG,"id: "+ byte2HexStr(id_));
+        re = byteMerger(id_,date);
+
+
+//        Log.e(TAG,"get_id: "+ byte2HexStr(re));
         return re;
     }
 
@@ -552,21 +563,17 @@ public class Service_Adv extends Service {
 //        Log.e(TAG,"date: " + y + m + d );
 
         for(int i =0 ; i <id_num ; i++){
-//            Log.e(TAG,"date_id: " + i);
             cursor.moveToPosition(i);
-            String s;
+            String data = cursor.getString(1);
             int year,month,day;
-            byte[] date,test;
-            s = cursor.getString(1);
-            test = bigIntToByteArray(2020);
-//            test = s.substring(1,3).getBytes();
-            year = test[0]*256+(test[1]& 0xff);
-//            Log.e(TAG,"test: " + s.substring(1,3));
+            byte[] date;
+            date = hexToBytes(data.substring(2,10));
+            year = date[0]*256+(date[1]& 0xff);
+            month = date[2];
+            day = date[3];
 
-            date = s.substring(3,5).getBytes();
+//            Log.e(TAG,"date: " + year + month + day);
 
-            month = date[0];
-            day = date[1];
             if(y>year){
                 delete(cursor.getString(0));
             }else if(y==year){
@@ -595,4 +602,32 @@ public class Service_Adv extends Service {
         return bigInt.toByteArray();
     }
 
+    public static byte[] hexToBytes(String hexString) {
+
+        char[] hex = hexString.toCharArray();
+        //轉rawData長度減半
+        int length = hex.length / 2;
+        byte[] rawData = new byte[length];
+        for (int i = 0; i < length; i++) {
+            //先將hex資料轉10進位數值
+            int high = Character.digit(hex[i * 2], 16);
+            int low = Character.digit(hex[i * 2 + 1], 16);
+            //將第一個值的二進位值左平移4位,ex: 00001000 => 10000000 (8=>128)
+            //然後與第二個值的二進位值作聯集ex: 10000000 | 00001100 => 10001100 (137)
+            int value = (high << 4) | low;
+            //與FFFFFFFF作補集
+            if (value > 127)
+                value -= 256;
+            //最後轉回byte就OK
+            rawData [i] = (byte) value;
+        }
+        return rawData ;
+    }
+
+    public static byte[] byteMerger(byte[] byte_1, byte[] byte_2) {
+        byte[] byte_3 = new byte[byte_1.length + byte_2.length];
+        System.arraycopy(byte_1, 0, byte_3, 0, byte_1.length);
+        System.arraycopy(byte_2, 0, byte_3, byte_1.length, byte_2.length);
+        return byte_3;
+    }
 }
