@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.coupon_forwarding_system">
+    package="com.example.ad_forwarding_system">
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
 
@@ -20,18 +20,18 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <service
-            android:name=".Jobservice_data_check"
+            android:name="com.example.ad_forwarding_system.Jobservice_data_check"
             android:enabled="true"
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <service
-            android:name=".JOBservice_event_check"
+            android:name="com.example.ad_forwarding_system.JOBservice_event_check"
             android:enabled="true"
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
-        <activity android:name=".MainActivity">
+        <activity android:name="com.example.ad_forwarding_system.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -40,11 +40,11 @@
         </activity>
 
         <service
-            android:name=".Service_Adv"
+            android:name="com.example.ad_forwarding_system.Service_Adv"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".Service_Scan"
+            android:name="com.example.ad_forwarding_system.Service_Scan"
             android:enabled="true"
             android:exported="true" />
     </application>

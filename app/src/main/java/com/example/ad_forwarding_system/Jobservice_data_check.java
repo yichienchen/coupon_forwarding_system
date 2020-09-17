@@ -1,25 +1,21 @@
-package com.example.coupon_forwarding_system;
+package com.example.ad_forwarding_system;
 
-import android.app.Service;
 import android.app.job.JobParameters;
 import android.app.job.JobService;
-import android.content.Intent;
-import android.os.IBinder;
 import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Calendar;
 
-import static com.example.coupon_forwarding_system.MainActivity.TAG;
-import static com.example.coupon_forwarding_system.MainActivity.data_list;
-import static com.example.coupon_forwarding_system.MainActivity.last_received_time;
-import static com.example.coupon_forwarding_system.MainActivity.list_device;
-import static com.example.coupon_forwarding_system.MainActivity.num_list;
-import static com.example.coupon_forwarding_system.MainActivity.regroup_data;
-import static com.example.coupon_forwarding_system.Service_scan_function.add_database;
-import static com.example.coupon_forwarding_system.Service_scan_function.compare_database;
-import static com.example.coupon_forwarding_system.Service_scan_function.time_difference_;
+import static com.example.ad_forwarding_system.MainActivity.TAG;
+import static com.example.ad_forwarding_system.MainActivity.data_list;
+import static com.example.ad_forwarding_system.MainActivity.last_received_time;
+import static com.example.ad_forwarding_system.MainActivity.list_device;
+import static com.example.ad_forwarding_system.MainActivity.num_list;
+import static com.example.ad_forwarding_system.MainActivity.regroup_data;
+import static com.example.ad_forwarding_system.Service_scan_function.time_difference_;
 
+//檢查是否有已完成的資料
 public class Jobservice_data_check extends JobService {
     static ArrayList<Integer> list = new ArrayList<>();
     public Jobservice_data_check() {

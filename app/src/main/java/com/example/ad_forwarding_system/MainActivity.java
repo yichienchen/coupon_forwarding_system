@@ -1,4 +1,4 @@
-package com.example.coupon_forwarding_system;
+package com.example.ad_forwarding_system;
 
 import android.Manifest;
 import android.app.AlertDialog;
@@ -26,7 +26,6 @@ import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -42,26 +41,19 @@ import java.util.Map;
 
 import java.util.TreeMap;
 
-import static android.Manifest.permission.ACCESS_BACKGROUND_LOCATION;
-import static com.example.coupon_forwarding_system.DBHelper.TB1;
-import static com.example.coupon_forwarding_system.Function.hexToAscii;
-import static com.example.coupon_forwarding_system.Service_Adv.get_id_num;
-import static com.example.coupon_forwarding_system.Service_Adv.hexToBytes;
+import static com.example.ad_forwarding_system.DBHelper.TB1;
+import static com.example.ad_forwarding_system.Function.hexToAscii;
+import static com.example.ad_forwarding_system.Service_Adv.get_id_num;
+import static com.example.ad_forwarding_system.Service_Adv.hexToBytes;
 
 public class MainActivity extends AppCompatActivity {
 
-    static int ManufacturerData_size = 24;  //ManufacturerData長度
-    static String TAG = "chien";
+    static String TAG = "lab_605";
 
     public static byte[][] data_legacy;
     public static byte[][] data_extended;
 
-//    public static byte[] id_byte = new byte[] {0x22, 0x6c, 0x74, 0x52};
-
-    static boolean version = true;  //true: 4.0 , false:5.0
-
-//    static byte[] id_byte = new byte[4];
-
+//    static boolean version = true;  //true: 4.0 , false:5.0
 
     static List<String> list_device = new ArrayList<>();
 
@@ -73,7 +65,6 @@ public class MainActivity extends AppCompatActivity {
 
     static Map<Integer, AdvertiseCallback> AdvertiseCallbacks_map;
     static Map<Integer, AdvertisingSetCallback> extendedAdvertiseCallbacks_map;
-
 
     static BluetoothManager mBluetoothManager;
     static BluetoothAdapter mBluetoothAdapter;
@@ -87,14 +78,10 @@ public class MainActivity extends AppCompatActivity {
     static ImageButton startAdvButton;
     static ImageButton stopAdvButton;
     public static TextView peripheralTextView;
-    static TextView sql_Text;
-
-    //    default mode: low power
 
     static NotificationManager notificationManager;
     static NotificationChannel mChannel;
-    Intent intentMainActivity;
-    static PendingIntent pendingIntent;
+
     static Notification notification;
     static Intent received_id;
 
@@ -125,7 +112,6 @@ public class MainActivity extends AppCompatActivity {
     public void onDestroy() {
         stopService(adv_service);
         stopService(scan_service);
-        Log.e(TAG, "onDestroy() called");
         super.onDestroy();
     }
 
@@ -133,7 +119,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onResume() {
         super.onResume();
-//        Log.e(TAG, "onResume() called");
         permission();
     }
 
@@ -167,10 +152,11 @@ public class MainActivity extends AppCompatActivity {
             requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
         }
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            Log.e(TAG, "!!!!!!!");
-            requestPermissions(new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, 10);
-        }
+        //Android 10
+//        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+//            Log.e(TAG, "!!!!!!!");
+//            requestPermissions(new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, 10);
+//        }
 
         if (!mBluetoothAdapter.isEnabled()) {
             Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -297,10 +283,6 @@ public class MainActivity extends AppCompatActivity {
             title = parts[0];
             data_ = parts[1];
 
-//            Log.e(TAG,"date: "+ date);
-//            Log.e(TAG,"title: "+ title);
-//            Log.e(TAG,"data_: "+ data_);
-
             list[0][cursor.getPosition()] = _id;
             list[1][cursor.getPosition()] = ID;
             list[2][cursor.getPosition()] = date;
@@ -358,7 +340,7 @@ public class MainActivity extends AppCompatActivity {
                 .setShowWhen(true)
                 .setContentIntent(pendingIntent1)
                 .build();
-//        mChannel.setImportance(NotificationManager.IMPORTANCE_HIGH);
+
         notificationManager.createNotificationChannel(mChannel);
     }
 

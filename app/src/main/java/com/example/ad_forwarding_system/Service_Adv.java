@@ -1,15 +1,13 @@
-package com.example.coupon_forwarding_system;
+package com.example.ad_forwarding_system;
 
 import android.annotation.SuppressLint;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseData;
-import android.bluetooth.le.AdvertiseSettings;
 import android.bluetooth.le.AdvertisingSet;
 import android.bluetooth.le.AdvertisingSetCallback;
 import android.bluetooth.le.AdvertisingSetParameters;
-import android.bluetooth.le.PeriodicAdvertisingParameters;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -17,36 +15,28 @@ import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.View;
-import android.widget.Toast;
 
 import androidx.annotation.RequiresApi;
 
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Date;
 
-import static com.example.coupon_forwarding_system.DBHelper.TB1;
-import static com.example.coupon_forwarding_system.Function.byte2HexStr;
-import static com.example.coupon_forwarding_system.Function.hexToAscii;
-import static com.example.coupon_forwarding_system.Function.intToByte;
-import static com.example.coupon_forwarding_system.MainActivity.AdvertiseCallbacks_map;
-import static com.example.coupon_forwarding_system.MainActivity.DH;
-import static com.example.coupon_forwarding_system.MainActivity.TAG;
+import static com.example.ad_forwarding_system.DBHelper.TB1;
+import static com.example.ad_forwarding_system.Function.hexToAscii;
+import static com.example.ad_forwarding_system.Function.intToByte;
+import static com.example.ad_forwarding_system.MainActivity.AdvertiseCallbacks_map;
+import static com.example.ad_forwarding_system.MainActivity.DH;
+import static com.example.ad_forwarding_system.MainActivity.TAG;
+import static com.example.ad_forwarding_system.MainActivity.data_legacy;
+import static com.example.ad_forwarding_system.MainActivity.extendedAdvertiseCallbacks_map;
+import static com.example.ad_forwarding_system.MainActivity.mAdvertiseCallback;
+import static com.example.ad_forwarding_system.MainActivity.mBluetoothLeAdvertiser;
+import static com.example.ad_forwarding_system.MainActivity.startAdvButton;
+import static com.example.ad_forwarding_system.MainActivity.stopAdvButton;
 
-import static com.example.coupon_forwarding_system.MainActivity.data_extended;
-import static com.example.coupon_forwarding_system.MainActivity.data_legacy;
-import static com.example.coupon_forwarding_system.MainActivity.extendedAdvertiseCallbacks_map;
-
-import static com.example.coupon_forwarding_system.MainActivity.mAdvertiseCallback;
-import static com.example.coupon_forwarding_system.MainActivity.mBluetoothLeAdvertiser;
-import static com.example.coupon_forwarding_system.MainActivity.startAdvButton;
-import static com.example.coupon_forwarding_system.MainActivity.stopAdvButton;
-import static com.example.coupon_forwarding_system.MainActivity.version;
 
 
 
@@ -60,10 +50,6 @@ public class Service_Adv extends Service {
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     public Service_Adv() {
-
-
-        //todo forward_num+1
-
         startAdvertising();
         stopAdvButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -93,31 +79,22 @@ public class Service_Adv extends Service {
                 startAdvertising();
             }
         });
-
-
-
     }
-
-
 
     @Override
     public IBinder onBind(Intent intent) {
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
-
-
     @RequiresApi(api = Build.VERSION_CODES.O)
     public void startAdvertising(){
         SQLiteDatabase db = DH.getReadableDatabase();
         Log.e(TAG, "Service: Starting Advertising");
         id_num = get_id_num(db);
-//        Log.e(TAG,"id_num: "+ id_num);
         get_date(db);
         id_num = get_id_num(db);
         Log.e(TAG,"id_num: "+ id_num);
         show(db);
-
 
         if (mAdvertiseCallback == null) {
             if (mBluetoothLeAdvertiser != null) {
@@ -126,27 +103,16 @@ public class Service_Adv extends Service {
                     count=count+1;
                 }
 
-
                 if(count<id_num){
                     data_legacy = Adv_data_seg(count);
                     for (int y=0;y<data_legacy.length;y++){
-                        startBroadcast(y,true);
+                        startBroadcast(y);
                     }
                 }else {
                     Log.e(TAG,"no forwarding data");
                     stopAdvButton.setVisibility(View.INVISIBLE);
                     startAdvButton.setVisibility(View.VISIBLE);
-
                 }
-
-
-                //5.0
-                if (!version){
-                    for (int y=0;y<data_extended.length;y++){
-                        startBroadcast(y,false);
-                    }
-                }
-
             }
         }
 
@@ -155,34 +121,17 @@ public class Service_Adv extends Service {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
-    public void startBroadcast(Integer order , boolean v) {
+    public void startBroadcast(Integer order) {
         String localName =  String.valueOf(1) ;
         BluetoothAdapter.getDefaultAdapter().setName(localName);
+        AdvertiseData advertiseData = buildAdvertiseData(order);
+        AdvertiseData scanResponse = buildAdvertiseData_scan_response(order);
+        AdvertisingSetParameters parameters = buildAdvertisingSetParameters();
+        mBluetoothLeAdvertiser.startAdvertisingSet(parameters,advertiseData,scanResponse,
+                null,null,500,0,new ExtendedAdvertiseCallback(order));
 
-        if (v) {
-            //only BLE4.0
-//            AdvertiseSettings settings = buildAdvertiseSettings();
-            AdvertiseData advertiseData = buildAdvertiseData(order);
-            AdvertiseData scanResponse = buildAdvertiseData_scan_response(order);
-//            mBluetoothLeAdvertiser.startAdvertising(settings, advertiseData , scanResponse , new Service_Adv.MyAdvertiseCallback(order));
 
-            AdvertisingSetParameters parameters = buildAdvertisingSetParameters();
-            mBluetoothLeAdvertiser.startAdvertisingSet(parameters,advertiseData,scanResponse ,
-                    null,null,500,0,new ExtendedAdvertiseCallback(order));
 
-        } else {
-            //two modes
-//            AdvertiseData advertiseData_extended = buildAdvertiseData_extended(order);
-//            AdvertiseData periodicData = buildAdvertiseData_periodicData();
-            AdvertiseData advertiseData = buildAdvertiseData(order);
-            AdvertiseData scanResponse = buildAdvertiseData_scan_response(order);
-            AdvertisingSetParameters parameters = buildAdvertisingSetParameters();
-//            PeriodicAdvertisingParameters periodicParameters = buildperiodicParameters();
-
-            mBluetoothLeAdvertiser.startAdvertisingSet(parameters,advertiseData,scanResponse,
-                    null,null,0,0,new ExtendedAdvertiseCallback(order));
-
-        }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -191,11 +140,6 @@ public class Service_Adv extends Service {
             if(count<id_num){
                 for (int q=0;q<data_legacy.length;q++){
                     stopBroadcast(q);
-                }
-                if (!version){
-                    for (int q=0;q<data_extended.length;q++){
-                        stopBroadcast(q);
-                    }
                 }
             }
 
@@ -210,7 +154,6 @@ public class Service_Adv extends Service {
         final AdvertiseCallback adCallback = AdvertiseCallbacks_map.get(order);
         final AdvertisingSetCallback exadvCallback = extendedAdvertiseCallbacks_map.get(order);
 
-            //BLE 5.0
             if (exadvCallback != null) {
                 try {
                     if (mBluetoothLeAdvertiser != null) {
@@ -251,15 +194,13 @@ public class Service_Adv extends Service {
                     }
                     for (int q=0;q<packet_num;q++) {  //x
                         if (count < id_num) {
-                            startBroadcast(q,version);
+                            startBroadcast(q);
                         }
                     }
                 }
 
             }
 
-
-            //BLE 4.0
             if (adCallback != null) {
                 try {
                     if (mBluetoothLeAdvertiser != null) {
@@ -274,12 +215,9 @@ public class Service_Adv extends Service {
                 }
                 AdvertiseCallbacks_map.remove(order);
             }
-//            Log.e(TAG,order +" Advertising successfully stopped");
-
-
-
     }
 
+    //data segment
     @RequiresApi(api = Build.VERSION_CODES.O)
     public static byte[][] Adv_data_seg(int data_num){
         SQLiteDatabase db = DH.getReadableDatabase();
@@ -316,46 +254,6 @@ public class Service_Adv extends Service {
         return adv_byte;
     }
 
-
-    //BLE 4.0
-    public static class MyAdvertiseCallback extends AdvertiseCallback {
-        private final Integer _order;
-        MyAdvertiseCallback(Integer order) {
-            _order = order;
-        }
-        @Override
-        public void onStartFailure(int errorCode) {
-            super.onStartFailure(errorCode);
-            Log.e(TAG, "Advertising failed errorCode: "+errorCode);
-            switch (errorCode) {
-                case ADVERTISE_FAILED_ALREADY_STARTED:
-                    Log.e(TAG,"ADVERTISE_FAILED_ALREADY_STARTED");
-                    break;
-                case ADVERTISE_FAILED_DATA_TOO_LARGE:
-                    Log.e(TAG,"ADVERTISE_FAILED_DATA_TOO_LARGE");
-                    break;
-                case ADVERTISE_FAILED_FEATURE_UNSUPPORTED:
-                    Log.e(TAG,"ADVERTISE_FAILED_FEATURE_UNSUPPORTED");
-                    break;
-                case ADVERTISE_FAILED_INTERNAL_ERROR:
-                    Log.e(TAG,"ADVERTISE_FAILED_INTERNAL_ERROR");
-                    break;
-                case ADVERTISE_FAILED_TOO_MANY_ADVERTISERS:
-                    Log.e(TAG,"ADVERTISE_FAILED_TOO_MANY_ADVERTISERS");
-                    break;
-                default:
-                    Log.e(TAG,"Unhandled error : "+errorCode);
-            }
-        }
-
-        @Override
-        public void onStartSuccess(AdvertiseSettings settingsInEffect) {
-            super.onStartSuccess(settingsInEffect);
-            Log.e(TAG, _order +" Advertising successfully started");
-            AdvertiseCallbacks_map.put(_order, this);
-        }
-    }
-
     static AdvertiseData buildAdvertiseData(Integer order) {
         AdvertiseData.Builder dataBuilder = new AdvertiseData.Builder();
         dataBuilder.setIncludeDeviceName(false);
@@ -370,17 +268,7 @@ public class Service_Adv extends Service {
         return dataBuilder.build();
     }
 
-    public static AdvertiseSettings buildAdvertiseSettings() {
-        AdvertiseSettings.Builder settingsBuilder = new AdvertiseSettings.Builder()
-                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
-                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM)
-                .setConnectable(false)
-                .setTimeout(0);
-        return settingsBuilder.build();
-    }
-
-    //BLE 5.0
-    @RequiresApi(api = Build.VERSION_CODES.O)
+     @RequiresApi(api = Build.VERSION_CODES.O)
     public class ExtendedAdvertiseCallback extends AdvertisingSetCallback {
         private final Integer _order;
         ExtendedAdvertiseCallback(Integer order) {
@@ -433,7 +321,6 @@ public class Service_Adv extends Service {
         }
     }
 
-
     @RequiresApi(api = Build.VERSION_CODES.O)
     public static AdvertisingSetParameters buildAdvertisingSetParameters() {
         AdvertisingSetParameters.Builder parametersBuilder = new AdvertisingSetParameters.Builder()
@@ -443,33 +330,6 @@ public class Service_Adv extends Service {
                 .setTxPowerLevel(AdvertisingSetParameters.TX_POWER_MEDIUM)
                 .setLegacyMode(true);
         return parametersBuilder.build();
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.O)
-    public static PeriodicAdvertisingParameters buildperiodicParameters() {
-        PeriodicAdvertisingParameters.Builder periodicparametersBuilder = new PeriodicAdvertisingParameters.Builder()
-                .setInterval(200);
-        return periodicparametersBuilder.build();
-    }
-
-    static AdvertiseData buildAdvertiseData_extended(int order) {
-        AdvertiseData.Builder dataBuilder = new AdvertiseData.Builder();
-        dataBuilder.setIncludeDeviceName(false);
-
-        dataBuilder.addManufacturerData(0xffff,data_extended[order]);
-
-//        ParcelUuid pUuid1 = new ParcelUuid(UUID.fromString("00001111-0000-1000-8000-00805F9B34FB"));
-//        dataBuilder.addServiceData(pUuid1,data_[order]);
-//        dataBuilder.addServiceData(pUuid1,data_[order]);
-
-        return dataBuilder.build();
-    }
-
-    static AdvertiseData buildAdvertiseData_periodicData() {
-        AdvertiseData.Builder dataBuilder = new AdvertiseData.Builder();
-        byte[] data = {0x00,0x11,0xf,0x1a,0x00,0x11,0xf,0x1a,0x00,0x11,0xf,0x1a,0x00,0x11,0xf,0x1a,0x00,0x11,0xf,0x1a,0x00,0x11,0xf,0x1a,0x00,0x11,0xf,0x1a,0x00,0x11,0xf,0x1a,0x00,0x11,0xf,0x1a,0x00,0x11,0xf,0x1a};
-        dataBuilder.addManufacturerData(0xffff,data);
-        return dataBuilder.build();
     }
 
 
@@ -493,12 +353,14 @@ public class Service_Adv extends Service {
         cursor.close();
     }
 
+    //查看全部有幾筆ad
     public static int get_id_num(SQLiteDatabase db) {
         @SuppressLint("Recycle") Cursor cursor = db.query(TB1,new String[]{"_id","ID","DATA"},
                 null,null,null,null,null);
         return cursor.getCount();
     }
 
+    //取得ad內容，並且檢查forward number有無超過10，決定是否要轉傳
     private static String get_data(int data_num,SQLiteDatabase db) {
         Cursor cursor = db.query(TB1,new String[]{"DATA"},
                 null,null,null,null,null);
@@ -510,12 +372,8 @@ public class Service_Adv extends Service {
 
         s1 = s.substring(0,10);
         s2 = hexToAscii(s.substring(10));
-//        Log.e(TAG,"s1: " + s1);
-//        Log.e(TAG,"s2: " + s2);
 
         forward = Integer.parseInt(s1.substring(0,2));
-
-//        Log.e(TAG,"forward: " + forward);
 
         if(forward>9){
             new_s = null;
@@ -523,11 +381,11 @@ public class Service_Adv extends Service {
             new_s = s2;
         }
 
-//        Log.e(TAG,"new_s: " + s2);
         cursor.close();
         return new_s;
     }
 
+    //取得id
     private static byte[] get_id(int data_num,SQLiteDatabase db) {
         @SuppressLint("Recycle") Cursor cursor = db.query(TB1,new String[]{"ID","DATA"},
                 null,null,null,null,null);
@@ -542,14 +400,11 @@ public class Service_Adv extends Service {
 
         byte[] re;
         byte[] id_ = hexToBytes(id);
-//        Log.e(TAG,"id: "+ byte2HexStr(id_));
         re = byteMerger(id_,date);
-
-
-//        Log.e(TAG,"get_id: "+ byte2HexStr(re));
         return re;
     }
 
+    //檢查ad有效日期
     @RequiresApi(api = Build.VERSION_CODES.O)
     private static void get_date(SQLiteDatabase db) {
         Cursor cursor = db.query(TB1,new String[]{"ID","DATA"},
@@ -591,7 +446,7 @@ public class Service_Adv extends Service {
         cursor.close();
     }
 
-
+    //刪除過期ad
     public static void delete(String id){
         SQLiteDatabase db = DH.getWritableDatabase();
         db.delete(TB1,"ID=?",new String[]{id});
@@ -624,6 +479,7 @@ public class Service_Adv extends Service {
         return rawData ;
     }
 
+    //將ad個個欄位合起來
     public static byte[] byteMerger(byte[] byte_1, byte[] byte_2) {
         byte[] byte_3 = new byte[byte_1.length + byte_2.length];
         System.arraycopy(byte_1, 0, byte_3, 0, byte_1.length);

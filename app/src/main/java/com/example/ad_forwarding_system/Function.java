@@ -1,4 +1,4 @@
-package com.example.coupon_forwarding_system;
+package com.example.ad_forwarding_system;
 
 public class Function {
     static String hexToAscii(String hexStr) {

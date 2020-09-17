@@ -1,9 +1,5 @@
-package com.example.coupon_forwarding_system;
+package com.example.ad_forwarding_system;
 
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
@@ -18,38 +14,31 @@ import android.util.Log;
 import android.view.View;
 
 import androidx.annotation.RequiresApi;
-import androidx.core.app.NotificationCompat;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.Objects;
 
-import static com.example.coupon_forwarding_system.Function.byte2HexStr;
-import static com.example.coupon_forwarding_system.Function.hexToAscii;
-import static com.example.coupon_forwarding_system.MainActivity.DH;
-import static com.example.coupon_forwarding_system.MainActivity.TAG;
-import static com.example.coupon_forwarding_system.MainActivity.data_list;
-import static com.example.coupon_forwarding_system.MainActivity.last_received_time;
-import static com.example.coupon_forwarding_system.MainActivity.list_device;
-import static com.example.coupon_forwarding_system.MainActivity.mBluetoothAdapter;
-import static com.example.coupon_forwarding_system.MainActivity.mBluetoothLeScanner;
-import static com.example.coupon_forwarding_system.MainActivity.mChannel;
-import static com.example.coupon_forwarding_system.MainActivity.notification;
-import static com.example.coupon_forwarding_system.MainActivity.notificationManager;
-import static com.example.coupon_forwarding_system.MainActivity.num_list;
-import static com.example.coupon_forwarding_system.MainActivity.peripheralTextView;
-import static com.example.coupon_forwarding_system.MainActivity.regroup_data;
-import static com.example.coupon_forwarding_system.MainActivity.startScanningButton;
-import static com.example.coupon_forwarding_system.MainActivity.stopScanningButton;
+import static com.example.ad_forwarding_system.Function.byte2HexStr;
+import static com.example.ad_forwarding_system.MainActivity.DH;
+import static com.example.ad_forwarding_system.MainActivity.TAG;
+import static com.example.ad_forwarding_system.MainActivity.data_list;
+import static com.example.ad_forwarding_system.MainActivity.last_received_time;
+import static com.example.ad_forwarding_system.MainActivity.list_device;
+import static com.example.ad_forwarding_system.MainActivity.mBluetoothLeScanner;
+import static com.example.ad_forwarding_system.MainActivity.notification;
+import static com.example.ad_forwarding_system.MainActivity.notificationManager;
+import static com.example.ad_forwarding_system.MainActivity.num_list;
+import static com.example.ad_forwarding_system.MainActivity.peripheralTextView;
+import static com.example.ad_forwarding_system.MainActivity.regroup_data;
+import static com.example.ad_forwarding_system.MainActivity.startScanningButton;
+import static com.example.ad_forwarding_system.MainActivity.stopScanningButton;
 
-
-import static com.example.coupon_forwarding_system.Service_Adv.pdu_len;
-import static com.example.coupon_forwarding_system.Service_scan_function.add_database;
-import static com.example.coupon_forwarding_system.Service_scan_function.compare_database;
-import static com.example.coupon_forwarding_system.Service_scan_function.show;
-import static com.example.coupon_forwarding_system.Service_scan_function.time_difference_;
+import static com.example.ad_forwarding_system.Service_scan_function.add_database;
+import static com.example.ad_forwarding_system.Service_scan_function.compare_database;
+import static com.example.ad_forwarding_system.Service_scan_function.show;
+import static com.example.ad_forwarding_system.Service_scan_function.time_difference_;
 
 
 public class Service_Scan extends Service {
@@ -97,34 +86,23 @@ public class Service_Scan extends Service {
         startScanningButton.setVisibility(View.INVISIBLE);
         stopScanningButton.setVisibility(View.VISIBLE);
 
-        byte[] data_all = new byte[pdu_len+6];
-
 
         byte[] data_mask = new byte[] {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
                                        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
                                        0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 
 
-
-        ScanFilter Mau_filter_extended = new ScanFilter.Builder().setManufacturerData(0xffff,data_all,data_all).build();
         ScanFilter Mau_filter_legacy = new ScanFilter.Builder().setManufacturerData(0xffff,data_mask,data_mask).build();
 
-//        Log.e(TAG,"data_mask: "+byte2HexStr(data_mask));
-
         ArrayList<ScanFilter> filters = new ArrayList<>();
-//        filters.add(Mau_filter_extended);
         filters.add(Mau_filter_legacy);
 
 
         ScanSettings settings = new ScanSettings.Builder()
                 .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                 .setLegacy(false)
-//                .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)  //Fails to start power optimized scan as this feature is not supported
-//                .setMatchMode(ScanSettings.)
-//                .setNumOfMatches(1)
-//                .setReportDelay()
                 .build();
-//        btScanner.flushPendingScanResults(leScanCallback);
+
         mBluetoothLeScanner.startScan(filters, settings, leScanCallback);
 
     }
@@ -173,37 +151,17 @@ public class Service_Scan extends Service {
             String received_data_rsp = byte2HexStr(Objects.requireNonNull(Objects.requireNonNull(result.getScanRecord()).getManufacturerSpecificData(0xfff1)));
             received_data = received_data + received_data_rsp;
 
-//            Log.e(TAG,"received_data: "+ received_data);
             order = Array.getByte(Objects.requireNonNull(result.getScanRecord().getManufacturerSpecificData(0xffff)), 0);
             total = Array.getByte(Objects.requireNonNull(result.getScanRecord().getManufacturerSpecificData(0xffff)), 1);
 
             id = received_data.subSequence(2,12).toString();
 
-//            Log.e(TAG,"order: "+ order + " ; " + "total: " + total + " ; " + "id: " + id );
-
-//            if(order==1){
-//                received_data =
-//            }else {
-//                received_data = received_data.subSequence(12,received_data.length()).toString();
-//            }
-
             received_data = received_data.subSequence(12,received_data.length()).toString();
-//            Log.e(TAG,"received_data: "+ received_data);
 
-
-
-            Calendar a = Calendar.getInstance();
-//            String currentTime = f.format(a.getTime());
-            long TimestampMillis = result.getTimestampNanos()/1000000; //單位:ms
 
 
             /*------------------------------------------------------------message-------------------------------------------------------------------------*/
-            String msg;
-
             result.getTimestampNanos();
-            msg="order: "+ order + " ; " + "total: " + total + " ; " + "id: " + id + "\n";
-
-            peripheralTextView.append(msg);
 
             // auto scroll for text view
             final int scrollAmount = peripheralTextView.getLayout().getLineTop(peripheralTextView.getLineCount()) - peripheralTextView.getHeight();
@@ -213,9 +171,6 @@ public class Service_Scan extends Service {
 
             /*----------------------------------------------------------message END-----------------------------------------------------------------------*/
 
-
-
-            /*-------------------------------------------------------interval-----------------------------------------------------------------------------*/
 
 
             Calendar c = Calendar.getInstance();
@@ -249,9 +204,6 @@ public class Service_Scan extends Service {
                     Log.e(TAG,"regroup: "+ regroup );
                     regroup_data.set(index, regroup );
                 }
-//                Log.e(TAG, "regroup:" + hexToAscii(regroup));
-//                Log.e(TAG, "regroup_data:" + regroup_data);
-
             }
 
             if(!data_list.get(index).contains(received_data)){
@@ -278,11 +230,7 @@ public class Service_Scan extends Service {
                 }
             }
 
-
             //重組結束
-
-
-            /*-------------------------------------------------------interval END--------------------------------------------------------------------------*/
 
         }
 
